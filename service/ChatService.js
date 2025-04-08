@@ -57,16 +57,22 @@ exports.getBearer = function (req, apiKey) {
  * max_new_tokens Integer max length of generated text (optional)
  * returns Response
  **/
-exports.createChatCompletion = function (body, projectId, token, min_new_tokens, max_new_tokens) {
+exports.createChatCompletion = function (body, projectId, token) {
 
   return new Promise(function (resolve, reject) {
 
     var bearerToken = "Bearer " + token;
     console.log("Bearer Token: " + bearerToken);
 
+    const min_new_tokens = 50
+    const max_new_tokens = body.max_tokens;
+    console.log('Max Tokens: ', max_new_tokens);
+
+    const model = body.model;
+    console.log('Model: ', model);
+
     var prompt = body.messages[0].content;
     console.log('Prompt: ', prompt);
-
 
     var inputPayload = {
       "input": prompt,
@@ -77,7 +83,7 @@ exports.createChatCompletion = function (body, projectId, token, min_new_tokens,
         "stop_sequences": [],
         "repetition_penalty": 1
       },
-      "model_id": "ibm/granite-3-8b-instruct",
+      "model_id": model,
       "project_id": projectId,
       "moderations": {
         "hap": {
@@ -111,7 +117,7 @@ exports.createChatCompletion = function (body, projectId, token, min_new_tokens,
               "remove_entity_value": true
             }
           }
-        
+
         }
       }
     }
@@ -140,52 +146,74 @@ exports.createChatCompletion = function (body, projectId, token, min_new_tokens,
 
       var responseJson = JSON.parse(response.body);
 
-      console.log('***Response: ', responseJson.status_code);
+      console.log('***Response code: ', responseJson.status_code);
       console.log('***Response body: ', JSON.stringify(responseJson));
 
-      var generatedTxt =  "Cannot generate"
+      var generatedTxt = "Cannot generate"
+      var generated_token_count = 0
+      var prompt_tokens = 0
+      var total_tokens = 0
+      var ts = 0
 
       if (responseJson.status_code) {
         // Send back error in response
-        generatedTxt = "Error: " + response.body
+
+        const errorResponse = {
+          code: "400",
+          message: response.body,
+          param: "",
+          type: "Error"
+        }
+
+        resolve(errorResponse);
       }
       else if (responseJson.results[0].generated_text === "") {
         // Send back warnings in response
         const warnings = JSON.stringify(responseJson.system)
-        console.log('***Warnings: ', warnings);
+        console.log('***Warnings: ', warnings)
         generatedTxt = "Warning: " + warnings
+
       } else {
-        generatedTxt = responseJson.results[0].generated_text
+        const results = responseJson.results[0]
+
+        generatedTxt = results.generated_text
         console.log('***generatedTxt: ', generatedTxt);
+
+        ts = Math.floor(new Date(responseJson.created_at).getTime() / 1000);
+
+        generated_token_count = results.generated_token_count
+        prompt_tokens = results.input_token_count
+        total_tokens = results.generated_token_count + results.input_token_count
+
       }
 
-      var responsePayload =  {
-        "created" : 6,
-        "usage" : {
-          "completion_tokens" : 1,
-          "prompt_tokens" : 5,
-          "total_tokens" : 5
+      var responsePayload = {
+        "created": ts,
+        "usage": {
+          "completion_tokens": generated_token_count,
+          "prompt_tokens": prompt_tokens,
+          "total_tokens": total_tokens
         },
-        "model" : "model",
-        "id" : "id",
-        "choices" : [ {
-          "finish_reason" : "stop",
-          "index" : 0,
-          "message" : {
-            "role" : "assistant",
-            "content" : generatedTxt
+        "model": model,
+        "id": "id-" + ts,
+        "choices": [{
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": generatedTxt
           }
         }, {
-          "finish_reason" : "stop",
-          "index" : 0,
-          "message" : {
-            "role" : "assistant",
-            "content" : "Not implemented"
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Not implemented"
           }
-        } ],
-        "object" : "chat.completion"
+        }],
+        "object": "chat.completion"
       };
-      
+
 
       resolve(responsePayload);
 

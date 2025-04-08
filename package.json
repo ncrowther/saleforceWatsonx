@@ -1,0 +1,22 @@
+{
+  "name": "salesforce-llm-open-connector-api",
+  "version": "v1",
+  "description": "The LLM Open Connector API allows Salesforce customers and partners to provide access to LLMs in a standard way so that they can be consumed by the Einstein 1 platform. This API is based on OpenAI's API with significant modifications to accommodate Salesforce use cases.",
+  "main": "index.js",
+  "scripts": {
+    "prestart": "npm install",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "swagger"
+  ],
+  "license": "Unlicense",
+  "private": true,
+  "dependencies": {
+    "connect": "^3.2.0",
+    "js-yaml": "^3.3.0",
+    "oas3-tools": "^2.2.3",
+    "request": "^2.88.2",
+    "salesforce-llm-open-connector-api": "file:"
+  }
+}

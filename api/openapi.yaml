@@ -1,0 +1,277 @@
+openapi: 3.0.0
+info:
+  title: Salesforce LLM Open Connector API
+  description: The LLM Open Connector API allows Salesforce customers and partners
+    to provide access to LLMs in a standard way so that they can be consumed by the
+    Einstein 1 platform. This API is based on OpenAI's API with significant modifications
+    to accommodate Salesforce use cases.
+  termsOfService: ""
+  contact:
+    name: Einstein Foundations
+    url: https://www.salesforce.com/artificial-intelligence/
+  license:
+    name: MIT
+    url: https://github.com/salesforce/generic-llm-connector-openapi/blob/master/LICENSE
+  version: v1
+servers:
+- url: https://bring-your-own-llm.example.com
+tags:
+- name: Chat
+  description: "Given a list of messages comprising a conversation, the model will\
+    \ return a response."
+paths:
+  /chat/completions:
+    post:
+      tags:
+      - Chat
+      summary: Creates a model response for the given chat conversation.
+      operationId: createChatCompletion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChatCompletionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateChatCompletionResponse"
+      security:
+      - ApiKeyAuth: []
+      x-swagger-router-controller: Chat
+components:
+  schemas:
+    Error:
+      required:
+      - code
+      - message
+      - param
+      - type
+      type: object
+      properties:
+        code:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: false
+        param:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: false
+    ErrorResponse:
+      required:
+      - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
+    CompletionUsage:
+      required:
+      - completion_tokens
+      - prompt_tokens
+      - total_tokens
+      type: object
+      properties:
+        completion_tokens:
+          type: integer
+          description: Number of tokens in the generated completion.
+        prompt_tokens:
+          type: integer
+          description: Number of tokens in the prompt.
+        total_tokens:
+          type: integer
+          description: Total number of tokens used in the request (prompt + completion).
+      description: Usage statistics for the completion request.
+      example:
+        completion_tokens: 1
+        prompt_tokens: 5
+        total_tokens: 5
+    CreateChatCompletionRequest:
+      required:
+      - messages
+      - model
+      type: object
+      properties:
+        messages:
+          minItems: 1
+          type: array
+          description: A list of messages comprising the conversation so far.
+          items:
+            $ref: "#/components/schemas/ChatCompletionRequestMessage"
+        model:
+          type: string
+          description: ID of the model to use.
+          example: gpt-4-turbo
+        max_tokens:
+          type: integer
+          description: |
+            The maximum number of [tokens](/tokenizer) that can be generated in the chat completion.
+
+            The total length of input tokens and generated tokens is limited by the model's context length.
+          nullable: true
+        "n":
+          maximum: 128
+          minimum: 1
+          type: integer
+          description: How many chat completion choices to generate for each input
+            message. Note that you will be charged based on the number of generated
+            tokens across all of the choices. Keep `n` as `1` to minimize costs.
+          nullable: true
+          example: 1
+          default: 1
+        temperature:
+          maximum: 2
+          minimum: 0
+          type: number
+          description: "What sampling temperature to use, between 0 and 2. Higher\
+            \ values like 0.8 will make the output more random, while lower values\
+            \ like 0.2 will make it more focused and deterministic."
+          nullable: true
+          example: 1
+          default: 1
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Dictionary of any other parameters that are required by the
+            provider. Values are passed as is to the provider so that the request
+            can include parameters that are unique to a provider.
+          example:
+            top_p: 0.5
+    CreateChatCompletionResponse:
+      required:
+      - choices
+      - created
+      - id
+      - model
+      - object
+      type: object
+      properties:
+        id:
+          type: string
+          description: A unique identifier for the chat completion.
+        choices:
+          type: array
+          description: A list of chat completion choices. Can be more than one if
+            `n` is greater than 1.
+          items:
+            $ref: "#/components/schemas/CreateChatCompletionResponse_choices"
+        created:
+          type: integer
+          description: The Unix timestamp (in seconds) of when the chat completion
+            was created. Model endpoints that pass timestamps in milliseconds must
+            be converted to seconds.
+        model:
+          type: string
+          description: The model used for the chat completion.
+        object:
+          type: string
+          description: "The object type, which is always `chat.completion`."
+          enum:
+          - chat.completion
+        usage:
+          $ref: "#/components/schemas/CompletionUsage"
+      description: "Represents a chat completion response returned by model, based\
+        \ on the provided input."
+      example:
+        created: 6
+        usage:
+          completion_tokens: 1
+          prompt_tokens: 5
+          total_tokens: 5
+        model: model
+        id: id
+        choices:
+        - finish_reason: stop
+          index: 0
+          message:
+            role: assistant
+            content: content
+        - finish_reason: stop
+          index: 0
+          message:
+            role: assistant
+            content: content
+        object: chat.completion
+    ChatCompletionRequestMessage:
+      title: Chat Completion Message
+      required:
+      - content
+      - role
+      type: object
+      properties:
+        content:
+          type: string
+          description: The contents of the message.
+        role:
+          type: string
+          description: The role of the messages author.
+          enum:
+          - system
+          - user
+          - assistant
+        name:
+          type: string
+          description: An optional name for the participant. Provides the model information
+            to differentiate between participants of the same role.
+    ChatCompletionResponseMessage:
+      title: A chat completion message generated by the model.
+      required:
+      - content
+      - role
+      type: object
+      properties:
+        content:
+          type: string
+          description: The contents of the message.
+          nullable: true
+        role:
+          type: string
+          description: The role of the author of this message.
+          enum:
+          - assistant
+      example:
+        role: assistant
+        content: content
+    CreateChatCompletionResponse_choices:
+      required:
+      - finish_reason
+      - index
+      - message
+      type: object
+      properties:
+        finish_reason:
+          type: string
+          description: |
+            The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence,
+            `length` if the maximum number of tokens specified in the request was reached,
+            `content_filter` if content was omitted due to a flag from our content filters,
+            `tool_calls` if the model called a tool, or `function_call` (deprecated) if the model called a function.
+          enum:
+          - stop
+          - length
+          - tool_calls
+          - content_filter
+          - function_call
+        index:
+          type: integer
+          description: The index of the choice in the list of choices.
+        message:
+          $ref: "#/components/schemas/ChatCompletionResponseMessage"
+      example:
+        finish_reason: stop
+        index: 0
+        message:
+          role: assistant
+          content: content
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      description: "API key required to access the API, passed in the header."
+      name: api-key
+      in: header

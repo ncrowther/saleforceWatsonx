@@ -13,9 +13,9 @@ set -ex
 export REGISTRY=${REGISTRY:-docker.io/ncrowthe}
 
 # Build the image
-docker build ${NOCACHE} -t ${REGISTRY}/genaiservice . --platform linux/amd64
+docker build ${NOCACHE} -t ${REGISTRY}/salesforcewxo . --platform linux/amd64
 
 # And push it
-docker push ${REGISTRY}/genaiservice
+docker push ${REGISTRY}/salesforcewxo
 
 

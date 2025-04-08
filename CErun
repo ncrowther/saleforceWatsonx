@@ -8,7 +8,7 @@ function clean() {
   set +ex
   echo Cleaning...
   (
-  ibmcloud ce app delete -n genaiservice -f
+  ibmcloud ce app delete -n salesforcewxo -f
   ibmcloud ce jobrun delete -n hi-job -f
   rm -f out
   ) > /dev/null 2>&1
@@ -21,10 +21,10 @@ set -ex
 export REGISTRY=${REGISTRY:-docker.io/ncrowthe}
 
 # Create the app
-ibmcloud ce app create -n genaiservice --image ${REGISTRY}/genaiservice
+ibmcloud ce app create -n salesforcewxo --image ${REGISTRY}/salesforcewxo
 
 # Get the URL of the app for later use
-URL=$(ibmcloud ce app get -n genaiservice -o url)
+URL=$(ibmcloud ce app get -n salesforcewxo -o url)
 
 # Show the url
 echo  $URL 
